@@ -23,8 +23,11 @@ Observação: no modo Teste, o Google pede nova autorização a cada 7 dias. É 
 - **Hoje**: o que está atrasado, o que vence em 7 dias, venda do dia e andamento do mês.
 - **Vendas**: lançar ou corrigir um dia (fechamento do caixa, cartão, PIX, outros, saídas).
 - **Contas**: filtros por situação, dar baixa, editar e criar conta na próxima linha vazia.
+- **Fluxo**: vendas esperadas contra contas a pagar nas próximas 4 semanas (estimativa).
 - **Análise**: faturamento, formas de pagamento e contas por mês.
-- **Alertas**: erros e inconsistências nas planilhas.
+- **Mais**: alertas, vales de colaboradores, cartões, pendências, metas e lembretes (arquivo .ics para a agenda do celular).
+- **Preparar mês**: copia as contas fixas de um mês para as linhas vazias do seguinte, com revisão item a item.
+- Meses que ainda não têm aba na planilha de contas aparecem como "sem aba"; quando a aba for criada, o painel passa a ler e gravar nela sozinho.
 
 Cores fixas: verde = pago, amarelo = vence em até 7 dias, vermelho = atrasada, roxo = mês encerrado para conferir, azul = futuro ou ação.
 

@@ -19,13 +19,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:980px;margin:0 auto;padding:16px 16px 110px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:8px 4px}
 .top small{color:var(--mut)}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:2px solid var(--bd)}
-nav.tabs button{border:0;border-radius:14px;padding:10px 4px;background:transparent;font-weight:700;font-size:14px;color:var(--mut);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:56px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:2px solid var(--bd)}
+nav.tabs button{border:0;border-radius:14px;padding:10px 4px;background:transparent;font-weight:700;font-size:13px;color:var(--mut);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:56px}
 nav.tabs button i{width:26px;height:6px;border-radius:99px;background:var(--bd)}
 nav.tabs button[aria-current="page"]{background:var(--azul-bg);color:var(--azul)}
 nav.tabs button[aria-current="page"] i{background:var(--azul)}
 nav.tabs button:nth-child(2) i{background:var(--verde)}nav.tabs button:nth-child(3) i{background:var(--amar)}
-nav.tabs button:nth-child(4) i{background:var(--roxo)}nav.tabs button:nth-child(5) i{background:var(--verm)}nav.tabs button:nth-child(1) i{background:var(--azul)}
+nav.tabs button:nth-child(4) i{background:var(--roxo)}nav.tabs button:nth-child(5) i{background:var(--verm)}nav.tabs button:nth-child(6) i{background:var(--mut)}nav.tabs button:nth-child(1) i{background:var(--azul)}
 .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:14px}
 .card{background:var(--card);border:2px solid var(--bd);border-radius:18px;padding:16px;box-shadow:var(--sombra);min-width:0}
 .card.verm{background:var(--verm-bg);border-color:var(--verm)}.card.amar{background:var(--amar-bg);border-color:var(--amar)}

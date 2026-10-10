@@ -85,7 +85,7 @@ async function carregar() {
       cartTab ? lerFaixas(CFG.CONTAS_ID, [q(cartTab, "A1:J25")]) : Promise.resolve([[]])]);
     S.vendas = {}; vt.forEach((t, i) => { const p = parseVendas(t, rv[i]); if (p) S.vendas[norm(t)] = p; });
     S.contas = {}; ct.forEach((x, i) => { const p = parseContas(x.t, x.ma, rc[i]); if (p) S.contas[x.ma.y * 100 + x.ma.m] = p; });
-    S.pend = parsePend(rp[0], pendTab); S.cart = parseCart(rk[0]);
+    S.pend = parsePend(rp[0], pendTab); S.cart = parseCart(rk[0]); await carregarExtra();
     S.loaded = true; $("#nav").hidden = false; render();
   } catch (e) { if (e.message !== "sessao") { $("#app").innerHTML = '<div class="login card verm"><h2>Não consegui abrir as planilhas</h2><p>' + esc(e.message) + '</p><p class="mut">Confira se você entrou com a conta que tem acesso às duas planilhas.</p><button class="btn" data-act="entrar">Tentar de novo</button></div>'; } }
 }
@@ -114,7 +114,7 @@ function parseContas(tab, ma, g) {
     if (typeof B === "string" && B.trim() && typeof C === "number" && C > 0) {
       const F = typeof r[5] === "number" ? r[5] : 0, st = String(r[3] ?? "").trim();
       items.push({r: i + 1, tab, key: ma.y * 100 + ma.m, A: r[0], B: B.trim(), C, D: st, E: String(r[4] ?? ""), F, falta: Math.round((C - F) * 100) / 100, venc: vencimento(r[0], ma), dataFix: typeof r[0] === "number" && r[0] > 1000 && (fromSerial(r[0]).getMonth() !== ma.m || fromSerial(r[0]).getFullYear() !== ma.y), cat: catConta(B)});
-    } else if ((B === undefined || B === "") && (C === undefined || C === "") && (r[5] === undefined || r[5] === "")) slots.push({r: i + 1, A: r[0]});
+    } else if ((B === undefined || B === "") && (C === undefined || C === "") && (r[5] === undefined || r[5] === "")) slots.push({r: i + 1, A: r[0], D: r[3], E: r[4]});
   }
   return {tab, ma, key: ma.y * 100 + ma.m, items, slots, a_pagar: sum(items, "C"), pago: sum(items, "F"), sheetId: S.tabs.contas[tab]};
 }
@@ -156,11 +156,11 @@ function telaLogin(msg) {
     (configurado() ? '<p>Entre com a sua conta Google. Os dados continuam só nas suas planilhas.</p><button class="btn" data-act="entrar">Entrar com Google</button>'
       : '<p><b>Falta uma configuração única.</b> Abra o arquivo <code>README.md</code> do repositório, siga a seção "Ligar ao Google" e cole o Client ID em <code>docs/config.js</code>.</p>') + '</div>';
 }
-const NAV = [["hoje", "Hoje"], ["vendas", "Vendas"], ["contas", "Contas"], ["analise", "Análise"], ["alertas", "Alertas"]];
+const NAV = [["hoje", "Hoje"], ["vendas", "Vendas"], ["contas", "Contas"], ["fluxo", "Fluxo"], ["analise", "Análise"], ["mais", "Mais"]];
 function render() {
   if (!S.loaded) return;
-  $("#nav").innerHTML = NAV.map(([k, t]) => '<button data-act="nav" data-v="' + k + '"' + (S.view === k ? ' aria-current="page"' : "") + '><i></i>' + t + (k === "alertas" && alertas().length ? " (" + alertas().length + ")" : "") + "</button>").join("");
-  const v = {hoje: vHoje, vendas: vVendas, contas: vContas, analise: vAnalise, alertas: vAlertas}[S.view];
+  $("#nav").innerHTML = NAV.map(([k, t]) => '<button data-act="nav" data-v="' + k + '"' + (S.view === k ? ' aria-current="page"' : "") + '><i></i>' + t + (k === "mais" && alertas().length ? " (" + alertas().length + ")" : "") + "</button>").join("");
+  const v = {hoje: vHoje, vendas: vVendas, contas: vContas, fluxo: vFluxo, analise: vAnalise, mais: vMais}[S.view];
   $("#app").innerHTML = '<div class="top"><div><h1>' + NAV.find(n => n[0] === S.view)[1] + '</h1><small>' + hoje().toLocaleDateString("pt-BR", {weekday: "long", day: "numeric", month: "long"}) + '</small></div><div><button class="btn sec small" data-act="atualizar">Atualizar</button> <button class="btn sec small" data-act="sair">Sair</button></div></div>' + v();
   scrollTo(0, 0);
 }
@@ -180,7 +180,7 @@ function vHoje() {
   if (conf.length) h1 += '<div class="card roxo"><h3>A conferir: meses encerrados</h3><div class="big">' + conf.length + '</div><div class="mut">' + brl(sum(conf, "falta")) + ' ainda aparecem em aberto</div><p class="mut">Provavelmente já foram pagas e faltam baixas na planilha. Confirme uma a uma.</p><p><button class="btn sec small" data-act="verContas" data-f="conferir">Conferir agora</button></p></div>';
   if (ck) { const pct = ck.a_pagar ? Math.min(100, ck.pago / ck.a_pagar * 100) : 0, fat = mv ? mv.tot : 0;
     h1 += '<div class="card roxo"><h3>' + MESES_LONGO[ma.m] + ": contas</h3><div class=\"big\">" + brl0(ck.a_pagar - ck.pago) + '</div><div class="mut">falta pagar de ' + brl0(ck.a_pagar) + '</div><div class="bar"><i style="width:' + pct.toFixed(0) + '%"></i></div><p class="mut">Vendido no mês até agora: ' + brl0(fat) + "</p></div>"; }
-  return h1 + "</div>";
+  return h1 + hojeExtra() + "</div>";
 }
 function vVendas() {
   const ma = mesAtual(); const sel = S.mesVenda ?? ma.m;
@@ -202,6 +202,7 @@ function vContas() {
   }).sort((a, b) => (a.venc || 0) - (b.venc || 0));
   let o = '<div class="chips">' + filtros.map(([k, t]) => '<button class="chip" aria-pressed="' + (f === k) + '" data-act="filtro" data-f="' + k + '">' + t + "</button>").join("") + '</div><p><button class="btn" data-act="novaConta">Nova conta</button> ';
   o += Object.values(S.contas).sort((a, b) => a.key - b.key).slice(0, 5).map(c => '<a class="btn sec small" target="_blank" rel="noopener" href="' + linkAba(CFG.CONTAS_ID, c.sheetId) + '">' + MESES[c.ma.m] + "/" + String(c.ma.y).slice(2) + "</a>").join(" ") + "</p>";
+  o += mesesSemAba();
   o += '<p class="mut">' + lista.length + " contas · " + brl(sum(lista, "falta")) + " em aberto neste filtro</p>";
   o += lista.slice(0, 60).map(c => { const s = situacao(c); return '<div class="row ' + s.k + '"><div class="t"><b>' + esc(c.B) + '</b><span class="mut">' + brl(c.C) + " · vence " + fmtData(c.venc) + " · " + MESES[c.key % 100] + '</span><br><span class="pill ' + s.k + '">' + esc(s.t) + "</span> " + (c.D ? '<span class="mut">' + esc(c.D) + "</span>" : "") + '</div><div>' + (c.falta > 0.005 ? '<button class="btn verde small" data-act="baixa" data-k="' + c.key + '" data-r="' + c.r + '">Dar baixa</button> ' : "") + '<button class="btn sec small" data-act="editar" data-k="' + c.key + '" data-r="' + c.r + '">Editar</button></div></div>'; }).join("");
   if (lista.length > 60) o += '<p class="mut">Mostrando as 60 primeiras. Use os filtros para afunilar.</p>';
@@ -304,7 +305,7 @@ async function revisarVenda() {
 function formConta(key, r, modo) { // modo: "baixa" | "editar" | "nova"
   const c = S.contas[key]; if (!c) return;
   let it = modo === "nova" ? null : c.items.find(x => x.r === r);
-  if (modo === "nova") { const s = c.slots[0]; if (!s) { abrirDlg('<h2>Sem linha livre</h2><p>A aba de ' + MESES_LONGO[c.ma.m] + ' não tem mais linhas vazias. Abra a planilha e crie a linha lá; não altero a estrutura.</p><button class="btn" data-act="fechar">Fechar</button>'); return; } it = {r: s.r, A: s.A, B: "", C: "", D: "Á pagar", E: "SICOOB PJ", F: 0, venc: null, tab: c.tab, key}; }
+  if (modo === "nova") { const s = c.slots[0]; if (!s) { abrirDlg('<h2>Sem linha livre</h2><p>A aba de ' + MESES_LONGO[c.ma.m] + ' não tem mais linhas vazias. Abra a planilha e crie a linha lá; não altero a estrutura.</p><button class="btn" data-act="fechar">Fechar</button>'); return; } it = {r: s.r, A: s.A, D0: s.D, E0: s.E, B: "", C: "", D: "Á pagar", E: "SICOOB PJ", F: 0, venc: null, tab: c.tab, key}; }
   S.edit = {tipo: "conta", modo, key, it, c};
   const venc = it.venc ? it.venc.getFullYear() + "-" + String(it.venc.getMonth() + 1).padStart(2, "0") + "-" + String(it.venc.getDate()).padStart(2, "0") : "";
   const baixa = modo === "baixa";
@@ -323,15 +324,15 @@ function revisarConta() {
   else if (e.modo === "nova") { toast("Informe o valor a pagar."); return; }
   if (f !== "") { const v = toNum(f); if (isNaN(v) || v < 0 || v > 500000) { toast("Valor pago inválido."); return; } add("F", "Valor pago", v, it.F || ""); }
   if (a) { const [y, m, dd] = a.split("-").map(Number), nv = serial(new Date(y, m - 1, dd)); const antes = e.modo === "nova" ? (it.A ?? "") : (typeof it.A === "number" && it.A > 1000 ? it.A : it.venc ? serial(it.venc) : ""); add("A", "Vencimento (data)", nv, antes); }
-  if (d) add("D", "Situação", d, e.modo === "nova" ? "" : it.D); if (ee) add("E", "Pago por", ee, e.modo === "nova" ? "" : it.E);
+  if (d) add("D", "Situação", d, e.modo === "nova" ? (it.D0 ?? "") : it.D); if (ee) add("E", "Pago por", ee, e.modo === "nova" ? (it.E0 ?? "") : it.E);
   if (!itens.length) { toast("Nada mudou."); return; }
   confirmar(CFG.CONTAS_ID, itens, (e.modo === "nova" ? "Nova conta" : e.modo === "baixa" ? "Baixa" : "Edição") + ": " + (it.B || lerCampo("c_b")));
 }
 async function confirmar(id, itens, titulo) {
   S.pendente = {id, itens, titulo};
-  const fmt = (r, v) => typeof v === "number" ? (r.includes("!A") && v > 20000 ? fmtData(fromSerial(v)) : brl(v)) : esc(v);
+  const fmt = (i, v) => typeof v === "number" ? ((i.data || (i.range.includes("!A") && v > 20000)) && v > 20000 ? fmtData(fromSerial(v)) : brl(v)) : esc(v);
   abrirDlg("<h2>Confira antes de gravar</h2><p><b>" + esc(titulo) + '</b></p><div class="scroll"><table class="diff"><tr><th>Célula</th><th>Antes</th><th>Depois</th></tr>' +
-    itens.map(i => "<tr><td>" + esc(i.range.replace(/'/g, "")) + "<br><span class=\"mut\">" + esc(i.nome) + "</span></td><td>" + (i.antes === "" ? "vazio" : fmt(i.range, i.antes)) + "</td><td>" + fmt(i.range, i.valor) + "</td></tr>").join("") +
+    itens.map(i => "<tr><td>" + esc(i.range.replace(/'/g, "")) + "<br><span class=\"mut\">" + esc(i.nome) + "</span></td><td>" + (i.antes === "" ? "vazio" : fmt(i, i.antes)) + "</td><td>" + fmt(i, i.valor) + "</td></tr>").join("") +
     '</table></div><p class="mut">Só valores nestas células. Fórmulas, abas e colunas não são tocadas.</p><p><button class="btn verde" data-act="gravar">Gravar na planilha</button> <button class="btn sec" data-act="fechar">Voltar</button></p>');
 }
 async function gravarAgora() {
@@ -361,7 +362,7 @@ document.addEventListener("click", ev => {
     vendaDia: () => formVenda(+d.m),
     baixa: () => formConta(+d.k, +d.r, "baixa"), editar: () => formConta(+d.k, +d.r, "editar"),
     novaConta: () => { const ma = mesAtual(); const k = S.contas[ma.y * 100 + ma.m] ? ma.y * 100 + ma.m : Math.max(...Object.keys(S.contas).map(Number)); formConta(k, 0, "nova"); }
-  }[d.act]; ac && ac();
+  }[d.act] || (window.ACOES || {})[d.act]; ac && ac(b);
 });
 document.addEventListener("input", ev => { if (ev.target.id?.startsWith("v_")) prevVenda(); });
 document.addEventListener("change", ev => { if (ev.target.id === "v_dia" && S.edit?.tipo === "venda") formVenda(S.edit.mesIdx, +ev.target.value); });
